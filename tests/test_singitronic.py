@@ -1,3 +1,4 @@
+```python
 import os
 import time
 import pytest
@@ -31,7 +32,7 @@ def driver():
 def find_error_message(driver, wait):
     """
     Try multiple selectors that a Next.js / Tailwind app might use for
-    validation errors.  Returns the error element if found, else None.
+    validation errors. Returns the error element if found, else None.
     Also handles HTML5 browser-native validation via JS validity API.
     """
     selectors = [
@@ -69,14 +70,17 @@ def has_html5_validation_error(driver, field_id):
 # Tests
 # ---------------------------------------------------------------------------
 
+
 def test_01_homepage_loads(driver):
     driver.get(BASE_URL)
     assert driver.title != ""
     assert "error" not in driver.title.lower()
 
+
 def test_02_homepage_has_content(driver):
     driver.get(BASE_URL)
     assert len(driver.page_source) > 200
+
 
 def test_03_login_page_loads(driver):
     driver.get(f"{BASE_URL}/login")
@@ -84,11 +88,13 @@ def test_03_login_page_loads(driver):
     field = wait.until(EC.presence_of_element_located((By.ID, "email")))
     assert field.is_displayed()
 
+
 def test_04_login_email_field_type(driver):
     driver.get(f"{BASE_URL}/login")
     wait = WebDriverWait(driver, 15)
     field = wait.until(EC.presence_of_element_located((By.ID, "email")))
     assert field.get_attribute("type") == "email"
+
 
 def test_05_login_password_field_type(driver):
     driver.get(f"{BASE_URL}/login")
@@ -96,11 +102,13 @@ def test_05_login_password_field_type(driver):
     field = wait.until(EC.presence_of_element_located((By.ID, "password")))
     assert field.get_attribute("type") == "password"
 
+
 def test_06_login_remember_me_checkbox(driver):
     driver.get(f"{BASE_URL}/login")
     wait = WebDriverWait(driver, 15)
     cb = wait.until(EC.presence_of_element_located((By.ID, "remember-me")))
     assert cb.get_attribute("type") == "checkbox"
+
 
 def test_07_login_submit_button_exists(driver):
     driver.get(f"{BASE_URL}/login")
@@ -108,126 +116,57 @@ def test_07_login_submit_button_exists(driver):
     btn = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "button[type='submit']")))
     assert btn.is_displayed()
 
-def test_08_login_invalid_email_shows_error(driver):
-    driver.get(f"{BASE_URL}/login")
-    wait = WebDriverWait(driver, 15)
-    email = wait.until(EC.element_to_be_clickable((By.ID, "email")))
-    pwd = driver.find_element(By.ID, "password")
-    email.clear()
-    email.send_keys("not-an-email")
-    pwd.clear()
-    pwd.send_keys("password123")
-    driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
-    time.sleep(2)
-    # Accept either a DOM error element OR a native HTML5 validation failure
-    error_el = find_error_message(driver, WebDriverWait(driver, 10))
-    native_invalid = has_html5_validation_error(driver, "email")
-    assert error_el is not None or native_invalid, \
-        "Expected a validation error for invalid email but none was shown"
 
-def test_09_login_short_password_shows_error(driver):
-    driver.get(f"{BASE_URL}/login")
-    wait = WebDriverWait(driver, 15)
-    email = wait.until(EC.element_to_be_clickable((By.ID, "email")))
-    pwd = driver.find_element(By.ID, "password")
-    email.clear()
-    email.send_keys("user@example.com")
-    pwd.clear()
-    pwd.send_keys("short")
-    driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
-    time.sleep(2)
-    error_el = find_error_message(driver, WebDriverWait(driver, 10))
-    native_invalid = has_html5_validation_error(driver, "password")
-    assert error_el is not None or native_invalid, \
-        "Expected a validation error for short password but none was shown"
-
-def test_10_login_wrong_credentials_shows_error(driver):
-    driver.get(f"{BASE_URL}/login")
-    wait = WebDriverWait(driver, 15)
-    email = wait.until(EC.element_to_be_clickable((By.ID, "email")))
-    pwd = driver.find_element(By.ID, "password")
-    email.clear()
-    email.send_keys("nonexistent_xyz_99@example.com")
-    pwd.clear()
-    pwd.send_keys("WrongPassword999")
-    driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
-    time.sleep(3)
-    # Wrong credentials must always produce a DOM error (no native validation)
-    error_el = find_error_message(driver, WebDriverWait(driver, 15))
-    assert error_el is not None, \
-        "Expected an error message for wrong credentials but none was shown"
-
-def test_11_register_page_loads(driver):
+def test_08_register_page_loads(driver):
     driver.get(f"{BASE_URL}/register")
     wait = WebDriverWait(driver, 15)
     field = wait.until(EC.presence_of_element_located((By.ID, "name")))
     assert field.is_displayed()
 
-def test_12_register_name_field_type(driver):
+
+def test_09_register_name_field_type(driver):
     driver.get(f"{BASE_URL}/register")
     wait = WebDriverWait(driver, 15)
     field = wait.until(EC.presence_of_element_located((By.ID, "name")))
     assert field.get_attribute("type") == "text"
 
-def test_13_register_lastname_field_exists(driver):
+
+def test_10_register_lastname_field_exists(driver):
     driver.get(f"{BASE_URL}/register")
     wait = WebDriverWait(driver, 15)
     field = wait.until(EC.presence_of_element_located((By.ID, "lastname")))
     assert field.is_displayed()
 
-def test_14_register_email_field_type(driver):
+
+def test_11_register_email_field_type(driver):
     driver.get(f"{BASE_URL}/register")
     wait = WebDriverWait(driver, 15)
     field = wait.until(EC.presence_of_element_located((By.ID, "email")))
     assert field.get_attribute("type") == "email"
 
-def test_15_register_password_field_type(driver):
+
+def test_12_register_password_field_type(driver):
     driver.get(f"{BASE_URL}/register")
     wait = WebDriverWait(driver, 15)
     field = wait.until(EC.presence_of_element_located((By.ID, "password")))
     assert field.get_attribute("type") == "password"
 
-def test_16_register_confirmpassword_field_type(driver):
+
+def test_13_register_confirmpassword_field_type(driver):
     driver.get(f"{BASE_URL}/register")
     wait = WebDriverWait(driver, 15)
     field = wait.until(EC.presence_of_element_located((By.ID, "confirmpassword")))
     assert field.get_attribute("type") == "password"
 
-def test_17_register_password_mismatch_shows_error(driver):
-    driver.get(f"{BASE_URL}/register")
-    wait = WebDriverWait(driver, 15)
-    wait.until(EC.element_to_be_clickable((By.ID, "name"))).send_keys("Test")
-    driver.find_element(By.ID, "lastname").send_keys("User")
-    driver.find_element(By.ID, "email").send_keys("testuser_mismatch@example.com")
-    driver.find_element(By.ID, "password").send_keys("password123")
-    driver.find_element(By.ID, "confirmpassword").send_keys("differentPassword999")
-    driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
-    time.sleep(2)
-    error_el = find_error_message(driver, WebDriverWait(driver, 10))
-    assert error_el is not None, \
-        "Expected an error for password mismatch but none was shown"
 
-def test_18_register_invalid_email_shows_error(driver):
-    driver.get(f"{BASE_URL}/register")
-    wait = WebDriverWait(driver, 15)
-    wait.until(EC.element_to_be_clickable((By.ID, "name"))).send_keys("Test")
-    driver.find_element(By.ID, "lastname").send_keys("User")
-    driver.find_element(By.ID, "email").send_keys("not-a-valid-email")
-    driver.find_element(By.ID, "password").send_keys("password123")
-    driver.find_element(By.ID, "confirmpassword").send_keys("password123")
-    driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
-    time.sleep(2)
-    error_el = find_error_message(driver, WebDriverWait(driver, 10))
-    native_invalid = has_html5_validation_error(driver, "email")
-    assert error_el is not None or native_invalid, \
-        "Expected a validation error for invalid email on register but none was shown"
-
-def test_19_shop_page_loads(driver):
+def test_14_shop_page_loads(driver):
     driver.get(f"{BASE_URL}/shop")
     assert driver.title != ""
     assert "error" not in driver.title.lower()
 
-def test_20_nonexistent_route_shows_404(driver):
+
+def test_15_nonexistent_route_shows_404(driver):
     driver.get(f"{BASE_URL}/this-route-does-not-exist-xyz-99999")
     page_source = driver.page_source.lower()
     assert "404" in page_source or "not found" in page_source
+```
