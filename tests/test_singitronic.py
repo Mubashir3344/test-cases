@@ -168,4 +168,3 @@ def test_15_nonexistent_route_shows_404(driver):
     driver.get(f"{BASE_URL}/this-route-does-not-exist-xyz-99999")
     page_source = driver.page_source.lower()
     assert "404" in page_source or "not found" in page_source
-```
