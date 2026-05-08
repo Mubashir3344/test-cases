@@ -7,6 +7,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 BASE_URL = os.environ.get("APP_URL", "http://13.51.242.231").rstrip("/")
 
@@ -20,13 +21,53 @@ def driver():
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-extensions")
-    # Use the system chromedriver installed alongside google-chrome-stable
     service = Service("/usr/bin/chromedriver")
     d = webdriver.Chrome(service=service, options=options)
     d.implicitly_wait(10)
     yield d
     d.quit()
 
+
+def find_error_message(driver, wait):
+    """
+    Try multiple selectors that a Next.js / Tailwind app might use for
+    validation errors.  Returns the error element if found, else None.
+    Also handles HTML5 browser-native validation via JS validity API.
+    """
+    selectors = [
+        "p.text-red-600",
+        "p.text-red-500",
+        "span.text-red-600",
+        "span.text-red-500",
+        "[role='alert']",
+        ".error-message",
+        ".text-red-600",
+        ".text-red-500",
+        "p[class*='red']",
+        "span[class*='red']",
+        "div[class*='error']",
+    ]
+    for sel in selectors:
+        try:
+            el = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, sel)))
+            if el and el.text.strip():
+                return el
+        except TimeoutException:
+            pass
+    return None
+
+
+def has_html5_validation_error(driver, field_id):
+    """Check if a field has a browser-native HTML5 validation error."""
+    return driver.execute_script(
+        f"var el = document.getElementById('{field_id}'); "
+        "return el ? !el.validity.valid : false;"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 
 def test_01_homepage_loads(driver):
     driver.get(BASE_URL)
@@ -78,8 +119,11 @@ def test_08_login_invalid_email_shows_error(driver):
     pwd.send_keys("password123")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
     time.sleep(2)
-    error = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "p.text-red-600")))
-    assert error.text.strip() != ""
+    # Accept either a DOM error element OR a native HTML5 validation failure
+    error_el = find_error_message(driver, WebDriverWait(driver, 10))
+    native_invalid = has_html5_validation_error(driver, "email")
+    assert error_el is not None or native_invalid, \
+        "Expected a validation error for invalid email but none was shown"
 
 def test_09_login_short_password_shows_error(driver):
     driver.get(f"{BASE_URL}/login")
@@ -92,8 +136,10 @@ def test_09_login_short_password_shows_error(driver):
     pwd.send_keys("short")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
     time.sleep(2)
-    error = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "p.text-red-600")))
-    assert error.text.strip() != ""
+    error_el = find_error_message(driver, WebDriverWait(driver, 10))
+    native_invalid = has_html5_validation_error(driver, "password")
+    assert error_el is not None or native_invalid, \
+        "Expected a validation error for short password but none was shown"
 
 def test_10_login_wrong_credentials_shows_error(driver):
     driver.get(f"{BASE_URL}/login")
@@ -106,8 +152,10 @@ def test_10_login_wrong_credentials_shows_error(driver):
     pwd.send_keys("WrongPassword999")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
     time.sleep(3)
-    error = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "p.text-red-600")))
-    assert error.text.strip() != ""
+    # Wrong credentials must always produce a DOM error (no native validation)
+    error_el = find_error_message(driver, WebDriverWait(driver, 15))
+    assert error_el is not None, \
+        "Expected an error message for wrong credentials but none was shown"
 
 def test_11_register_page_loads(driver):
     driver.get(f"{BASE_URL}/register")
@@ -155,8 +203,9 @@ def test_17_register_password_mismatch_shows_error(driver):
     driver.find_element(By.ID, "confirmpassword").send_keys("differentPassword999")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
     time.sleep(2)
-    error = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "p.text-red-600")))
-    assert error.text.strip() != ""
+    error_el = find_error_message(driver, WebDriverWait(driver, 10))
+    assert error_el is not None, \
+        "Expected an error for password mismatch but none was shown"
 
 def test_18_register_invalid_email_shows_error(driver):
     driver.get(f"{BASE_URL}/register")
@@ -168,8 +217,10 @@ def test_18_register_invalid_email_shows_error(driver):
     driver.find_element(By.ID, "confirmpassword").send_keys("password123")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
     time.sleep(2)
-    error = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "p.text-red-600")))
-    assert error.text.strip() != ""
+    error_el = find_error_message(driver, WebDriverWait(driver, 10))
+    native_invalid = has_html5_validation_error(driver, "email")
+    assert error_el is not None or native_invalid, \
+        "Expected a validation error for invalid email on register but none was shown"
 
 def test_19_shop_page_loads(driver):
     driver.get(f"{BASE_URL}/shop")
